@@ -1,8 +1,15 @@
 base : type.
-arb : base.
+a : base.
+b : base.
+c : base.
+
 
 base_value : base -> type.
-bv : base_value arb.
+a_val : base_value a.
+b_val : base_value b.
+c_val : base_value c.
+
+
 
 ty+ : type.
 t1    : ty+.
@@ -10,9 +17,8 @@ tprod : ty+ -> ty+ -> ty+.
 tsum  : ty+ -> ty+ -> ty+.
 tbase : base -> ty+.
 
-ty- : type.
-tr : ty+ -> ty- -> ty-.
-ret : ty+ -> ty-.
+% ty- : type.
+% tr : ty+ -> ty+ -> ty-.
 
 % values: inhabitants of positive types
 value : ty+ -> type.
@@ -22,25 +28,63 @@ inl  : value A -> value (tsum A B).
 inr  : value B -> value (tsum A B).
 vbase : base_value P -> value (tbase P).
 
+% transformation types
+
+comp : ty+ -> type.
+trans : ty+ -> ty+ -> type.
+
+% "comp A"s are
+% computations that eventually return values of type A
+comp/val : value A -> comp A.
+comp/app : value A -> trans A C -> comp C.
+
 % transformations: deconstructors of positive types
 % analogous to left rules of sequent calculus
-trans : ty- -> type.
-ignore : trans T -> trans (tr t1 T).  % could be "trans A C" in general
-split : (value A -> value B -> trans T) -> trans (tr (tprod A B) T).
-case : (value A -> trans T) -> (value B -> trans T) 
-        -> trans (tr (tsum A B) T).
-% case : (value A -> value C) -> (value B -> value C) 
-%        -> trans (tsum A B) C.
-use : value A -> trans (ret A).
-select : value A -> trans (tr A T) -> trans T.
+ignore : comp C -> trans t1 C.
+split : (value A -> value B -> comp C) 
+         -> trans (tprod A B) C.
+case :  (value A -> comp C) 
+     -> (value B -> comp C) 
+        -> trans (tsum A B) C.
 % id : trans A A.
 % seq : trans A B -> trans B C -> trans A C.
 
 % eval
-eval : value A -> trans (tr A (ret C)) -> value C -> type.
-%mode eval +Val +Trans -Val2.
+eval : comp A -> value A -> type.
+%mode eval +Comp -Val.
 
-% TODO
+eval/val : eval (comp/val V) V.
+
+eval/split
+  : eval 
+    (comp/app 
+        (pair V1 V2) 
+        (split ([x] [y] C x y)))
+    V
+  <- eval (C V1 V2) V.
+
+eval/case/inl
+  : eval
+    (comp/app
+        (inl V)
+        (case ([x] B1 x) ([y] B2 y)))
+    V'
+  <- eval (B1 V) V'.
+
+eval/case/inr
+  : eval
+    (comp/app
+        (inr V)
+        (case ([x] B1 x) ([y] B2 y)))
+    V'
+  <- eval (B2 V) V'.
+
+eval/ignore
+  : eval (comp/app unit (ignore C)) V
+  <- eval C V.
+
+%worlds () (eval _ _).
+%total {C} (eval C _).
 
 % eval : value T -> trans T C -> value C -> type.
 % %mode eval +Value +Trans -Value2.
@@ -58,19 +102,21 @@ eval : value A -> trans (tr A (ret C)) -> value C -> type.
 % eval/bind
 %   : eval V (bind ([x] V' x)) (V' V).
 % 
-% 
-% a : base.
-% b : base.
-% c : base.
-% 
-% a_val : base_value a.
-% b_val : base_value b.
-% c_val : base_value c.
-% 
-% example1 : trans 
-%                (tprod (tbase a) (tsum (tbase b) (tbase c))) 
-%                (tsum (tprod (tbase a) (tbase b)) (tbase c)).
-% example1 = split ([x] case (bind [z] inl (pair x z)) (bind [w] inr w)).
+
+%abbrev distrib 
+  : trans (tprod (tbase a) (tsum (tbase b) (tbase c))) 
+         (tsum (tprod (tbase a) (tbase b)) 
+                (tprod (tbase a) (tbase c))) 
+  = split 
+    ([x] [y] 
+      comp/app y 
+        (case ([z] comp/val (inl (pair x z))) 
+              ([w] comp/val (inr (pair x w))))).
+
+%abbrev input_ex1 = pair (vbase a_val) (inl (vbase b_val)).
+
+%solve distrib_eval : eval (comp/app input_ex1 distrib) Out.
+
 % example1_in = pair (vbase a_val) (inl (vbase b_val)).
 % 
 % %solve example_eval : eval example1_in example1 Out.
