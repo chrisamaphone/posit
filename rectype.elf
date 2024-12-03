@@ -43,3 +43,40 @@ eval/rec/fold
 % gets mad about termination violation,
 % could fix it, don't wanna.
 
+%% example time: nats!
+
+%abbrev natp : (ty+ -> ty+)
+  = ([a] tsum t1 a).
+%abbrev nat : ty+
+  = ind natp.
+%abbrev bool : ty+
+  = tsum t1 t1.
+%abbrev true : value bool
+  = inl unit.
+%abbrev false : value bool
+  = inr unit.
+
+%abbrev not : trans bool bool
+  = case ([x] ret false) ([y] ret true).
+
+%abbrev natpoly : poly natp
+  = poly/sum poly/const poly/id.
+
+%abbrev n0 : value nat
+  = fold natpoly (inl unit).
+
+%abbrev n2 : value nat
+  = fold natpoly (inr (fold natpoly (inr n0))).
+%abbrev n3 : value nat
+  = fold natpoly (inr n2).
+
+%abbrev even : trans nat bool
+  = rec natp
+    ([x:value (natp bool)] app x
+        (case ([u:value t1] ret true)
+              ([b:value bool] app b not))).
+
+%solve even_three
+  : eval (app n3 even) Out.
+% computes false!
+
