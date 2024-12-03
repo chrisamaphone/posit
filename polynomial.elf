@@ -1,0 +1,167 @@
+base : type.
+a : base.
+b : base.
+c : base.
+
+
+base_value : base -> type.
+a_val : base_value a.
+b_val : base_value b.
+c_val : base_value c.
+
+
+
+ty+ : type.
+t1    : ty+.
+tprod : ty+ -> ty+ -> ty+.
+tsum  : ty+ -> ty+ -> ty+.
+tbase : base -> ty+.
+
+% values: inhabitants of positive types
+value : ty+ -> type.
+unit : value t1.
+pair : value A -> value B -> value (tprod A B).
+inl  : value A -> value (tsum A B).
+inr  : value B -> value (tsum A B).
+vbase : base_value P -> value (tbase P).
+
+% computations and transformations
+comp : ty+ -> type.
+trans : ty+ -> ty+ -> type.
+
+% "comp A"s are
+% computations that eventually return values of type A
+ret : value A -> comp A.
+app : value A -> trans A C -> comp C.
+bind : comp A -> (value A -> comp C) -> comp C.
+
+% transformations: deconstructors of positive types
+% analogous to left rules of sequent calculus
+ignore : comp C -> trans t1 C.
+split : (value A -> value B -> comp C) 
+         -> trans (tprod A B) C.
+case :  (value A -> comp C) -> (value B -> comp C) 
+        -> trans (tsum A B) C.
+id   : trans A A.
+
+% eval
+eval : comp A -> value A -> type.
+%mode eval +Comp -Val.
+
+eval/val : eval (ret V) V.
+
+eval/split
+  : eval 
+    (app 
+        (pair V1 V2) 
+        (split ([x] [y] C x y)))
+    V
+  <- eval (C V1 V2) V.
+
+eval/case/inl
+  : eval
+    (app
+        (inl V)
+        (case ([x] B1 x) ([y] B2 y)))
+    V'
+  <- eval (B1 V) V'.
+
+eval/case/inr
+  : eval
+    (app
+        (inr V)
+        (case ([x] B1 x) ([y] B2 y)))
+    V'
+  <- eval (B2 V) V'.
+
+eval/ignore
+  : eval (app unit (ignore C)) V
+  <- eval C V.
+
+eval/id
+  : eval (app V id) V.
+
+eval/bind
+  : eval (bind C ([x] C' x)) V'
+  <- eval C V
+  <- eval (C' V) V'.
+
+%worlds () (eval _ _).
+%total C (eval C _).
+
+% example: distributivity of product over sum
+%abbrev distrib 
+  : trans (tprod (tbase a) (tsum (tbase b) (tbase c))) 
+         (tsum (tprod (tbase a) (tbase b)) 
+                (tprod (tbase a) (tbase c))) 
+  = split 
+    ([x] [y] 
+      app y 
+        (case ([z] ret (inl (pair x z))) 
+              ([w] ret (inr (pair x w))))).
+
+%abbrev input_ex1 = pair (vbase a_val) (inl (vbase b_val)).
+
+%solve distrib_eval : eval (app input_ex1 distrib) Out.
+
+% polynomial maps (via PFPL ch14 on "generic programming")
+% transformation that takes a polynomial over a type
+% t, and maps a transformation over data structures
+% with that shape.
+
+map : {P : ty+ -> ty+} 
+      trans A C
+   -> trans (P A) (P C) -> type.
+%mode map +P +T1 -T2.
+
+% see poly1.elf for a version
+% map : {P : ty+ -> ty+}
+%       (value A -> value B)
+%      %  -> (value (P A) -> value (P B))
+%       -> value (P A) -> value (P B)
+%        -> type.
+
+map/id 
+  : map ([t] t) T T.
+
+map/const 
+  : map ([t] A) (T : trans B C) id.
+
+map/prod 
+  : map ([t] tprod (P1 t) (P2 t)) 
+    (T : trans A C) 
+    (split [x] [y]
+        (bind (app x T1)
+          ([z] bind (app y T2)
+            ([w] ret (pair z w)))))
+  <- map P1 T (T1 : trans (P1 A) (P1 C))
+  <- map P2 T (T2 : trans (P2 A) (P2 C)).
+
+map/sum
+  : map ([t] tsum (P1 t) (P2 t))
+    (T : trans A C)
+    (case 
+        % branch 1: apply T1, then inl
+        ([x:value (P1 A)] 
+          bind (app x T1)
+          ([z] ret (inl z)))
+        % branch 2: apply T2, then inr
+        ([y:value (P2 A)] 
+          bind (app y T2)
+          ([w] ret (inr w)))
+    ) 
+  <- map P1 T T1
+  <- map P2 T T2.
+
+%worlds () (map _ _ _).
+%total P (map P _ _).
+
+
+% can now add rectypes!
+% eventually want to move the eval totality check
+% later to extend.
+
+% %worlds () (eval _ _).
+% %total C (eval C _).
+
+

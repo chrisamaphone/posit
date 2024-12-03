@@ -28,8 +28,7 @@ inl  : value A -> value (tsum A B).
 inr  : value B -> value (tsum A B).
 vbase : base_value P -> value (tbase P).
 
-% transformation types
-
+% computations and transformations
 comp : ty+ -> type.
 trans : ty+ -> ty+ -> type.
 
@@ -84,24 +83,7 @@ eval/ignore
   <- eval C V.
 
 %worlds () (eval _ _).
-%total {C} (eval C _).
-
-% eval : value T -> trans T C -> value C -> type.
-% %mode eval +Value +Trans -Value2.
-% eval/split
-%   : eval (pair V1 V2) (split Cont) V
-%     <- eval V2 (Cont V1) V.
-% eval/ignore
-%   : eval unit (ignore V) V.
-% eval/case/inl
-%   : eval (inl V1) (case T1 T2) V
-%   <- eval V1 T1 V.
-% eval/case/inr
-%   : eval (inr V2) (case T1 T2) V
-%   <- eval V2 T2 V.
-% eval/bind
-%   : eval V (bind ([x] V' x)) (V' V).
-% 
+%total C (eval C _).
 
 %abbrev distrib 
   : trans (tprod (tbase a) (tsum (tbase b) (tbase c))) 
@@ -117,9 +99,5 @@ eval/ignore
 
 %solve distrib_eval : eval (comp/app input_ex1 distrib) Out.
 
-% example1_in = pair (vbase a_val) (inl (vbase b_val)).
-% 
-% %solve example_eval : eval example1_in example1 Out.
-% 
 
 
