@@ -1,0 +1,45 @@
+% dependencies: 
+% finite.elf 
+% polynomial.elf
+% (run with sources.cfg)
+
+
+% inductive type (mu)
+ind : (ty+ -> ty+) -> ty+.
+
+% value form fold
+fold : poly A -> value (A (ind A)) -> value (ind A).
+
+% trans form rec
+rec : {A : ty+ -> ty+}
+    (value (A C) -> comp C)
+    -> trans (ind A) C.
+
+% eval for rec-fold
+eval/rec/fold
+  : eval
+    (app
+        (fold PolyA (V : value (A (ind A)))
+            : value (ind A))
+        (rec A ([x : value (A C)] R x : comp C)))
+    VOut
+  % generate output of map, then app V to it,
+  % then subst the result into R,
+  % and evaluate that.
+  <- map PolyA (rec A R) 
+    (Tr : trans (A (ind A)) (A C))
+  <- eval (app V Tr) (V' : value (A C))
+  <- eval (R V') (VOut : value C).
+
+% can check totality for map now
+
+%worlds () (map _ _ _).
+%total P (map P _ _).
+
+
+% and for eval?
+%worlds () (eval _ _).
+% %total C (eval C _).
+% gets mad about termination violation,
+% could fix it, don't wanna.
+

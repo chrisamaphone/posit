@@ -5,36 +5,41 @@
 % t, and maps a transformation over data structures
 % with that shape.
 
-map : {P : ty+ -> ty+} 
-      trans A C
+poly : (ty+ -> ty+) -> type.
+poly/const : poly ([t] A).
+poly/id : poly ([t] t).
+poly/prod : poly ([t] A t) -> poly ([t] B t)
+  -> poly ([t] tprod (A t) (B t)).
+poly/sum : poly ([t] A t) -> poly ([t] B t)
+  -> poly ([t] tsum (A t) (B t)).
+
+
+map : poly P
+   -> trans A C
    -> trans (P A) (P C) -> type.
 %mode map +P +T1 -T2.
 
-% see poly1.elf for a version
-% map : {P : ty+ -> ty+}
-%       (value A -> value B)
-%      %  -> (value (P A) -> value (P B))
-%       -> value (P A) -> value (P B)
-%        -> type.
-
 map/id 
-  : map ([t] t) T T.
+  : map poly/id T T.
 
 map/const 
-  : map ([t] A) (T : trans B C) id.
+  : map poly/const (T : trans B C) id.
 
 map/prod 
-  : map ([t] tprod (P1 t) (P2 t)) 
+  : map 
+    (poly/prod (Poly1 : poly P1) (Poly2 : poly P2)) 
+    % ([t] tprod (P1 t) (P2 t)) 
     (T : trans A C) 
     (split [x] [y]
         (bind (app x T1)
           ([z] bind (app y T2)
             ([w] ret (pair z w)))))
-  <- map P1 T (T1 : trans (P1 A) (P1 C))
-  <- map P2 T (T2 : trans (P2 A) (P2 C)).
+  <- map Poly1 T (T1 : trans (P1 A) (P1 C))
+  <- map Poly2 T (T2 : trans (P2 A) (P2 C)).
 
 map/sum
-  : map ([t] tsum (P1 t) (P2 t))
+  : map % ([t] tsum (P1 t) (P2 t))
+    (poly/sum (Poly1 : poly P1) (Poly2 : poly P2))
     (T : trans A C)
     (case 
         % branch 1: apply T1, then inl
@@ -46,18 +51,11 @@ map/sum
           bind (app y T2)
           ([w] ret (inr w)))
     ) 
-  <- map P1 T T1
-  <- map P2 T T2.
+  <- map Poly1 T T1
+  <- map Poly2 T T2.
 
-%worlds () (map _ _ _).
-%total P (map P _ _).
+% %worlds () (map _ _ _).
+% %total P (map P _ _).
 
-
-% can now add rectypes!
-% eventually want to move the eval totality check
-% later to extend.
-
-% %worlds () (eval _ _).
-% %total C (eval C _).
 
 

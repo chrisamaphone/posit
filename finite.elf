@@ -88,8 +88,8 @@ eval/bind
   <- eval (C' V) V'.
 
 
-%worlds () (eval _ _).
-%total C (eval C _).
+% %worlds () (eval _ _).
+% %total C (eval C _).
 
 %abbrev distrib 
   : trans (tprod (tbase a) (tsum (tbase b) (tbase c))) 
