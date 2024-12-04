@@ -56,9 +56,6 @@ eval/rec/fold
 %abbrev false : value bool
   = inr unit.
 
-%abbrev not : trans bool bool
-  = case ([x] ret false) ([y] ret true).
-
 %abbrev natpoly : poly natp
   = poly/sum poly/const poly/id.
 
@@ -70,6 +67,10 @@ eval/rec/fold
 %abbrev n3 : value nat
   = fold natpoly (inr n2).
 
+
+%abbrev not : trans bool bool
+  = case ([x] ret false) ([y] ret true).
+
 %abbrev even : trans nat bool
   = rec natp
     ([x:value (natp bool)] app x
@@ -78,5 +79,5 @@ eval/rec/fold
 
 %solve even_three
   : eval (app n3 even) Out.
-% computes false!
+% computes Out=false!
 
